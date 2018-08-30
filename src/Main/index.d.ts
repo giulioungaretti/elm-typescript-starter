@@ -10,7 +10,7 @@ export interface App {
       subscribe(callback: (data: string) => void): void
     }
     reply: {
-      send(data: number): void
+      send(data: string): void
     }
   }
 }

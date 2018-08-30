@@ -1,13 +1,15 @@
 port module Main exposing (main)
 
 import Html exposing (Html, button, div, text)
-import Html.Events exposing (onClick)
+import Html.Attributes exposing (contenteditable)
+import Html.Events exposing (onWithOptions)
+import Json.Decode as Decode
 
 
 port hello : String -> Cmd msg
 
 
-port reply : (Int -> msg) -> Sub msg
+port reply : (String -> msg) -> Sub msg
 
 
 type alias Model =
@@ -20,35 +22,84 @@ init =
 
 
 type Msg
-    = Increment
-    | Decrement
-    | ReplyReceived Int
+    = NoOp
+    | KeyDown
+    | MouseUp
+    | MouseOver MouseEvent
+    | MouseDown
+    | ReplyReceived String
+
+
+type alias MouseEvent =
+    { target : Decode.Value
+    }
+
+
+mouseEventDecoder : Decode.Decoder MouseEvent
+mouseEventDecoder =
+    Decode.map MouseEvent
+        (Decode.field "event" Decode.value)
+
+
+
+-- keyDecoder : Decode.Decoder Msg
+-- keyDecoder =
+--     MouseOver
+--         (Decode.map
+--             MouseEvent
+--             (Decode.field "event" Decode.value)
+--         )
 
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ button [ onClick Decrement ] [ text "---" ]
-        , div [] [ text (toString model) ]
-        , button [ onClick Increment ] [ text "+++" ]
+    div
+        [ contenteditable True
+        , onWithOptions "keydown"
+            { preventDefault = True, stopPropagation = True }
+            (Decode.succeed
+                KeyDown
+            )
+        , onWithOptions "mouseover"
+            { preventDefault = False, stopPropagation = True }
+            (mouseEventDecoder)
+        , onWithOptions "mouseup"
+            { preventDefault = False, stopPropagation = True }
+            (Decode.succeed
+                MouseUp
+            )
+        , onWithOptions "mousedown"
+            { preventDefault = False, stopPropagation = True }
+            (Decode.succeed
+                MouseDown
+            )
+        ]
+        [ text "Some text "
+        , div [] [ text "some thing else" ]
+        , text "more text"
         ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Increment ->
-            ( model + 1, Cmd.none )
+        NoOp ->
+            ( model, Cmd.none )
 
-        Decrement ->
-            ( model - 1, Cmd.none )
+        KeyDown ->
+            ( model, Cmd.none )
+
+        MouseOver _ ->
+            ( model, Cmd.none )
+
+        MouseUp ->
+            ( model, Cmd.none )
+
+        MouseDown ->
+            ( model, Cmd.none )
 
         ReplyReceived message ->
-            let
-                _ =
-                    Debug.log "ReplyReceived" message
-            in
-            ( model, Cmd.none )
+            ( model, hello message )
 
 
 subscriptions : Model -> Sub Msg
